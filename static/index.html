@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Trading</title>
+<style>
+body { background:#0f0f1a; color:white; text-align:center; font-family:Arial; }
+button { padding:15px; background:green; color:white; border:none; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h1>📊 AI Trading</h1>
+
+<input type="file" id="file">
+<br>
+
+<button onclick="analyze()">ANALYZE</button>
+
+<div id="result"></div>
+
+<script>
+async function analyze(){
+    let file = document.getElementById("file").files[0];
+
+    let form = new FormData();
+    form.append("file", file);
+
+    let res = await fetch("/upload-chart", {
+        method:"POST",
+        body:form
+    });
+
+    let data = await res.json();
+
+    document.getElementById("result").innerHTML =
+    `<h2>${data.signal}</h2>
+     <p>Confidence: ${data.confidence}%</p>
+     <p>Entry: ${data.entry}</p>
+     <p>SL: ${data.sl}</p>
+     <p>TP: ${data.tp}</p>`;
+}
+</script>
+
+</body>
+</html>
