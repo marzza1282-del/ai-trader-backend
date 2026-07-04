@@ -3,6 +3,10 @@ import requests
 
 app = FastAPI()
 
+@app.get("/")
+def home():
+    return {"status": "AI Trader Active", "endpoints": ["/analyze"]}
+    
 # =========================
 # FETCH REAL MARKET DATA
 # =========================
