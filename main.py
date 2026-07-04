@@ -4,12 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 import numpy as np
 import io
-import random
 
 app = FastAPI()
 
 # =========================
-# FRONTEND (HTML STATIC)
+# FRONTEND SERVE
 # =========================
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -19,58 +18,69 @@ def home():
 
 
 # =========================
-# AI VISION v1 FUNCTION
+# AI VISION PRO ENGINE
 # =========================
-def analyze_image(image_bytes):
+def analyze_pro_vision(image_bytes):
 
-    image = Image.open(io.BytesIO(image_bytes))
-    image = image.convert("RGB")
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    img = np.array(image)
 
-    img_array = np.array(image)
+    h, w, _ = img.shape
 
-    brightness = np.mean(img_array)
+    top = np.mean(img[:h//3])
+    middle = np.mean(img[h//3:2*h//3])
+    bottom = np.mean(img[2*h//3:])
 
-    # SIMPLE AI VISION LOGIC
-    if brightness > 120:
+    upper_pressure = top - middle
+    lower_pressure = bottom - middle
+
+    # =========================
+    # MARKET LOGIC (PRO STYLE)
+    # =========================
+    if lower_pressure > upper_pressure:
         signal = "BUY"
-        trend = "bullish (vision detected)"
+        trend = "bullish"
+        structure = "higher_low_forming"
     else:
         signal = "SELL"
-        trend = "bearish (vision detected)"
+        trend = "bearish"
+        structure = "lower_high_forming"
 
-    confidence = random.randint(70, 92)
+    confidence = int(abs(lower_pressure - upper_pressure) * 12)
+    confidence = max(65, min(confidence, 95))
 
-    return signal, trend, confidence
+    return signal, trend, structure, confidence
 
 
 # =========================
-# UPLOAD + ANALYSIS API
+# API ENDPOINT
 # =========================
 @app.post("/upload-chart")
 async def upload_chart(file: UploadFile = File(...)):
 
     image_bytes = await file.read()
 
-    signal, trend, confidence = analyze_image(image_bytes)
+    signal, trend, structure, confidence = analyze_pro_vision(image_bytes)
 
     entry = 1.2000
 
     if signal == "BUY":
-        sl = entry - 0.0020
-        tp = [entry + 0.0020, entry + 0.0040, entry + 0.0060]
+        sl = entry - 0.0025
+        tp = [entry + 0.0025, entry + 0.0050, entry + 0.0080]
     else:
-        sl = entry + 0.0020
-        tp = [entry - 0.0020, entry - 0.0040, entry - 0.0060]
+        sl = entry + 0.0025
+        tp = [entry - 0.0025, entry - 0.0050, entry - 0.0080]
 
     return {
         "status": "success",
         "analysis": {
             "signal": signal,
             "trend": trend,
+            "structure": structure,
             "confidence": confidence,
             "entry": entry,
             "stop_loss": sl,
             "take_profit": tp,
-            "note": "AI Vision v1 (single-file compiled system)"
+            "note": "AI PRO VISION v1 (FULL COMPILED SYSTEM)"
         }
     }
