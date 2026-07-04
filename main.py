@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
-import uvicorn
+import random
 
 app = FastAPI()
 
@@ -11,18 +11,26 @@ def home():
 async def upload_chart(file: UploadFile = File(...)):
     image = await file.read()
 
+    # 🔥 SIMULASI AI (nanti kita upgrade ke AI vision beneran)
+    signal = random.choice(["BUY", "SELL"])
+
+    confidence = random.randint(70, 95)
+
+    entry = round(random.uniform(1.1000, 1.3000), 5)
+    sl = round(entry - 0.0020, 5)
+    tp1 = round(entry + 0.0025, 5)
+    tp2 = round(entry + 0.0040, 5)
+    tp3 = round(entry + 0.0060, 5)
+
     return {
         "status": "success",
         "filename": file.filename,
         "analysis": {
-            "signal": "BUY",
-            "confidence": 75,
-            "entry": 0,
-            "sl": 0,
-            "tp": [0, 0, 0],
-            "note": "AI basic mode aktif (belum full AI)"
+            "signal": signal,
+            "confidence": confidence,
+            "entry": entry,
+            "stop_loss": sl,
+            "take_profit": [tp1, tp2, tp3],
+            "note": "AI v1 simulation active"
         }
     }
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
