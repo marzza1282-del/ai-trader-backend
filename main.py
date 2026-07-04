@@ -1,86 +1,72 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from PIL import Image
-import numpy as np
-import io
+from fastapi import FastAPI
+import requests
 
 app = FastAPI()
 
 # =========================
-# FRONTEND SERVE
+# FETCH REAL MARKET DATA
 # =========================
-app.mount("/static", StaticFiles(directory="static"), name="static")
+def get_market_data(symbol="BTCUSDT"):
+    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=5m&limit=50"
+    data = requests.get(url).json()
 
-@app.get("/")
-def home():
-    return FileResponse("static/index.html")
+    closes = [float(candle[4]) for candle in data]
+    return closes
 
 
 # =========================
-# AI VISION PRO ENGINE
+# REAL AI ANALYSIS ENGINE
 # =========================
-def analyze_pro_vision(image_bytes):
+def analyze_real_market(closes):
 
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img = np.array(image)
+    avg_short = sum(closes[-10:]) / 10
+    avg_long = sum(closes[-30:]) / 30
 
-    h, w, _ = img.shape
-
-    top = np.mean(img[:h//3])
-    middle = np.mean(img[h//3:2*h//3])
-    bottom = np.mean(img[2*h//3:])
-
-    upper_pressure = top - middle
-    lower_pressure = bottom - middle
-
-    # =========================
-    # MARKET LOGIC (PRO STYLE)
-    # =========================
-    if lower_pressure > upper_pressure:
+    # Trend logic (real price action based)
+    if closes[-1] > avg_short and avg_short > avg_long:
         signal = "BUY"
-        trend = "bullish"
-        structure = "higher_low_forming"
-    else:
+        trend = "uptrend"
+    elif closes[-1] < avg_short and avg_short < avg_long:
         signal = "SELL"
-        trend = "bearish"
-        structure = "lower_high_forming"
+        trend = "downtrend"
+    else:
+        signal = "HOLD"
+        trend = "sideways"
 
-    confidence = int(abs(lower_pressure - upper_pressure) * 12)
-    confidence = max(65, min(confidence, 95))
-
-    return signal, trend, structure, confidence
+    return signal, trend
 
 
 # =========================
-# API ENDPOINT
+# API ENDPOINT (REAL AI)
 # =========================
-@app.post("/upload-chart")
-async def upload_chart(file: UploadFile = File(...)):
+@app.get("/analyze")
+def analyze():
 
-    image_bytes = await file.read()
+    closes = get_market_data()
 
-    signal, trend, structure, confidence = analyze_pro_vision(image_bytes)
+    signal, trend = analyze_real_market(closes)
 
-    entry = 1.2000
+    entry = closes[-1]
 
     if signal == "BUY":
-        sl = entry - 0.0025
-        tp = [entry + 0.0025, entry + 0.0050, entry + 0.0080]
+        sl = entry * 0.99
+        tp = [entry * 1.01, entry * 1.02, entry * 1.03]
+    elif signal == "SELL":
+        sl = entry * 1.01
+        tp = [entry * 0.99, entry * 0.98, entry * 0.97]
     else:
-        sl = entry + 0.0025
-        tp = [entry - 0.0025, entry - 0.0050, entry - 0.0080]
+        sl = entry
+        tp = [entry]
 
     return {
         "status": "success",
+        "symbol": "BTCUSDT",
         "analysis": {
             "signal": signal,
             "trend": trend,
-            "structure": structure,
-            "confidence": confidence,
             "entry": entry,
             "stop_loss": sl,
             "take_profit": tp,
-            "note": "AI PRO VISION v1 (FULL COMPILED SYSTEM)"
+            "note": "REAL AI TRADING v1 (OHLC MARKET DATA)"
         }
     }
